@@ -1,5 +1,8 @@
 import streamlit as st
 from datetime import date
+from pages.onboarding import onboarding
+from pages.homepage import homepage
+from pages.activityform import activity_form
 
 if "db" not in st.session_state:
     st.session_state["db"] = {
@@ -62,40 +65,25 @@ if not st.session_state["logged_in"]:
             st.session_state["auth_mode"] = "login"
             st.rerun()
 else:
-    with st.form("onboarding"):
-        name = st.text_input("What is your name?")
-        age = st.text_input("How old are you?")
-        favorite_color = st.select_slider(
-            "Choose your favorite color",
-            options=[
-                "Red",
-                "Orange",
-                "Yellow",
-                "Green",
-                "Blue",
-                "Indigo",
-                "Violet",
-            ],
-        ) 
-        reason_for_use = st.radio(
-            "What are you using this website for?",
-            ["Personal Reasons", "School/Education", "Professional/Team Work"],
-        )
 
-        onboarding_submit = st.form_submit_button("Finish")
+    tab1, tab2, tab3 = st.tabs(["Onboarding", "Homepage", "Activity Form"])
 
-        if onboarding_submit:
-            st.session_state["auth_mode"] = "homepage"
-            st.rerun()
-            st.title("Home Page")
-            if st.button("Log Out"):
-                st.session_state["logged_in"] = False
-                st.rerun()
-            if st.button("Settings"):
-                st.session_state["auth_mode"] = "settings"
-                st.rerun()
-                st.title("settings")
+    with tab1:
+        onboarding()
+    with tab2:
+        homepage()
+    with tab3:
+        activity_form()
+
+    # col1, col2, col3 = st.columns(3)
+
+    # with col1:
+    #     onboarding()
+    # with col2:
+    #     homepage()
+    # with col3:
+    #     st.write("Hi im in col 3")
+    
     if st.button("Log Out"):
         st.session_state["logged_in"] = False
         st.rerun()
-
