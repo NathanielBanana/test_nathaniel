@@ -1,10 +1,15 @@
 import streamlit as st
-
-fixed_time_blocks = []
-
-floating_time_blocks = []
+from ai import get_json_response
+from pages.calender_gen import system_prompt
 
 def activity_form():
+
+    fixed_time_blocks = []  
+
+    floating_time_blocks = []
+
+    return_response = {}
+
     wakeup_time = st.select_slider(
         "What time do you usually wake up?",
         options=[
@@ -15,9 +20,7 @@ def activity_form():
             "7:00 AM",
             "7:30 AM",
             "8:00 AM",
-            "8:30 AM",
-            "9:00 AM",
-            
+            "8:30 AM",            
         ]
     )
     sleep_time = st.select_slider(
@@ -37,15 +40,15 @@ def activity_form():
     )
     
     st.write('Add Schedule!')
-    tab1, tab2 = st.tabs(["Fixed Blocks', Floating Blocks"])
+    tab1, tab2 = st.tabs(["Fixed Blocks", "Floating Blocks"])
 
     with tab1:
         
         fixed_block_name = st.text_input("Name of the fixed block")
 
-        start_fixed_time = st.time_input('Start Time')
+        start_fixed_time = st.time_input('Start Time', key='fixed_start')
 
-        end_fixed_time = st.time_input('End Time')
+        end_fixed_time = st.time_input('End Time', key='fixed_end')
 
         if st.button("Add Fixed Block"):
             fixed_time_blocks.append(
@@ -64,20 +67,42 @@ def activity_form():
 
         floating_block_name = st.text_input("Name of the Floating Block")
 
-        start_floating_time = st.time_input('Start Time')
+        floating_block_importance = st.select_slider(
+            "How Important is this Task?",
+            options=[
+                'Not Important',
+                'Slightly Important',
+                'Important',
+                'Very Important'
+            ]
+        )
 
-        end_floating_time = st.time_input('End Time')
+        floating_block_difficulty = st.select_slider(
+            "How difficult is this task?",
+            options=[
+                'Easy',
+                'Normal',
+                'Hard',
+                'Very Hard'
+            ]
 
+        )
+       
         if st.button('Add Floating Block'):
             floating_time_blocks.append(
                 {
                     'name' : floating_block_name,
-                    'start_time': start_floating_time,
-                    'end_time': end_floating_time,
+                    'importance' : floating_block_importance,
+                    'difficulty' : floating_block_difficulty      
                 }
             )
             st.rerun()
         for block in floating_time_blocks:
             st.write(block['name'] + " " + str(block["start_time"]) + " : " + str(block["end_time"]))
+    
+    if st.button('Generate Calender'):
+        user_prompt = f"The user wakes up at {wakeup_time}. They sleep at {sleep_time}. They have floating blocks: {floating_time_blocks}. They have fixed blocks: {fixed_time_blocks}"
 
-        
+        response = get_json_response(system_prompt, user_prompt)
+
+        st.write(response)
