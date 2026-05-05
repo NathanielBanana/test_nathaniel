@@ -101,6 +101,8 @@ def activity_form():
             st.write(block['name'] + " " + str(block["start_time"]) + " : " + str(block["end_time"]))
     
     if st.button('Generate Calender'):
+        st.write(floating_time_blocks)
+        st.write(fixed_time_blocks)
         user_prompt = f"The user wakes up at {wakeup_time}. They sleep at {sleep_time}. They have floating blocks: {floating_time_blocks}. They have fixed blocks: {fixed_time_blocks}"
 
         response = get_json_response(system_prompt, user_prompt)

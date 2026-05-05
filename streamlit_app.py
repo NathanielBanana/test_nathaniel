@@ -3,17 +3,7 @@ from datetime import date
 from pages.onboarding import onboarding
 from pages.homepage import homepage
 from pages.activityform import activity_form
-import pyrebase
 from pages.calender_gen import calender_gen
-from firebase_setup import firebaseConfig
-
-@st.cache_resource
-def init_firebase():
-    return pyrebase.initialize_app(firebaseConfig)
-
-firebase = init_firebase()
-auth = firebase.auth()
-
 
 if "db" not in st.session_state:
     st.session_state["db"] = {
@@ -55,8 +45,6 @@ if not st.session_state["logged_in"]:
 
             if st.form_submit_button("Log In"):
                 try:
-                    user = auth.sign_in_with_email_and_password(log_in_email, log_in_password)
-                    st.session_state['user_info'] = user
                     st.session_state["logged_in"] = True
                     st.rerun()
                 except Exception as e:
@@ -78,7 +66,6 @@ if not st.session_state["logged_in"]:
                     st.success("Account created! Please log in")
                     st.session_state["auth_mode"] = "login"
                     try:
-                        user = auth.create_user_with_email_and_password(sign_up_email, sign_up_password)
                         # Validate email / password
                         st.success("Account created! Please log in")
                         st.session_state["auth_mode"] = "login"
