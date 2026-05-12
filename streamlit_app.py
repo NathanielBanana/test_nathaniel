@@ -4,6 +4,7 @@ from pages.onboarding import onboarding
 from pages.homepage import homepage
 from pages.activityform import activity_form
 from pages.calender_gen import calender_gen
+from firebase_utils import db, auth
 
 if "db" not in st.session_state:
     st.session_state["db"] = {
@@ -45,7 +46,14 @@ if not st.session_state["logged_in"]:
 
             if st.form_submit_button("Log In"):
                 try:
+                    user = auth.sign_in_with_email_and_password(log_in_email, log_in_password)
                     st.session_state["logged_in"] = True
+                    st.session_state["user"] = {
+                        "uid": user["localId"],
+                        "email": user["email"],
+                        "id_token": user["idToken"],
+                        "refresh_token": user["refreshToken"]
+                    }
                     st.rerun()
                 except Exception as e:
                     st.error("Invalid Email or password. Please try again.")
@@ -63,10 +71,18 @@ if not st.session_state["logged_in"]:
             if st.form_submit_button("Create an Account"):
                 if sign_up_password == sign_up_password_confirm:    
 
-                    st.success("Account created! Please log in")
-                    st.session_state["auth_mode"] = "login"
+
                     try:
-                        # Validate email / password
+                        user = auth.create_user_with_email_and_password(sign_up_email, sign_up_password)
+                        uid = user["localId"]
+
+                        db.collection('users').document(uid).set({
+                            "onboarding_complete": False,
+                            "name": "",
+                            "age": 0,
+                            "email": sign_up_email,
+                        })
+
                         st.success("Account created! Please log in")
                         st.session_state["auth_mode"] = "login"
                         st.rerun()
