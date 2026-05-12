@@ -106,20 +106,21 @@ def activity_form():
     
     if st.button('Generate Calendar'):
 
-        import json
 
         user_prompt = json.dumps({
             "wakeup_time": wakeup_time,
             "sleep_time": sleep_time,
             "floating_blocks": floating_time_blocks,
             "fixed_blocks": fixed_time_blocks
-        })
+        }, default=str)
 
         response = get_json_response(system_prompt, user_prompt)
 
         # FIX: unwrap if needed
-        if isinstance(response, dict) and "events" in response:
-            response = response["events"]
+        if isinstance(response, dict):
+            list_value = next((v for v in response.values() if isinstance(v, list)), None)
+            if list_value is not None:
+                response = list_value
 
         st.session_state["generated_schedule"] = response
 
