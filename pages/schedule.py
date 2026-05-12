@@ -50,6 +50,9 @@ if len(events) == 0:
     st.warning("No valid events found.")
     st.stop()
 
+with st.expander("Debug: events being passed to calendar"):
+    st.write(events)
+
 # pick an initial date from the first event so the calendar lands on the right day
 initial_date = None
 first_start = events[0].get("start", "")
@@ -67,10 +70,11 @@ calendar_options = {
 if initial_date:
     calendar_options["initialDate"] = initial_date
 
+calendar_key = "calendar_" + str(hash(str(events)))
 calendar_component = calendar(
     events=events,
     options=calendar_options,
-    key="calendar"
+    key=calendar_key
 )
 
 st.write(calendar_component)
