@@ -1,12 +1,16 @@
 import streamlit as st
 from ai import get_json_response
 from pages.calender_gen import system_prompt
+import json
 
 def activity_form():
+    if "fixed_time_blocks" not in st.session_state:
+         st.session_state['fixed_time_blocks'] = []
+    if "floating_time_blocks" not in st.session_state:
+         st.session_state['floating_time_blocks'] = []
+    fixed_time_blocks = st.session_state['fixed_time_blocks']
 
-    fixed_time_blocks = []  
-
-    floating_time_blocks = []
+    floating_time_blocks =  st.session_state['floating_time_blocks']
 
     return_response = {}
 
@@ -98,13 +102,25 @@ def activity_form():
             )
             st.rerun()
         for block in floating_time_blocks:
-            st.write(block['name'] + " " + str(block["start_time"]) + " : " + str(block["end_time"]))
+            st.write(block['name'] + " " + str(block["importance"]) + " : " + str(block["difficulty"]))
     
-    if st.button('Generate Calender'):
-        st.write(floating_time_blocks)
-        st.write(fixed_time_blocks)
-        user_prompt = f"The user wakes up at {wakeup_time}. They sleep at {sleep_time}. They have floating blocks: {floating_time_blocks}. They have fixed blocks: {fixed_time_blocks}"
+    if st.button('Generate Calendar'):
+
+        import json
+
+        user_prompt = json.dumps({
+            "wakeup_time": wakeup_time,
+            "sleep_time": sleep_time,
+            "floating_blocks": floating_time_blocks,
+            "fixed_blocks": fixed_time_blocks
+        })
 
         response = get_json_response(system_prompt, user_prompt)
 
-        st.write(response)
+        # FIX: unwrap if needed
+        if isinstance(response, dict) and "events" in response:
+            response = response["events"]
+
+        st.session_state["generated_schedule"] = response
+
+        st.switch_page("pages/schedule.py")
