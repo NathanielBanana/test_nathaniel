@@ -6,25 +6,6 @@ from srs.activityform import activity_form
 from srs.calender_gen import calender_gen
 from firebase_utils import db, auth
 
-if "db" not in st.session_state:
-    st.session_state["db"] = {
-        "users" : {
-            "student_123" : {
-                "onboarding_complete: False"
-                "name" : "bobby",
-                "age" : 1000,
-                "email" : "bobby@school.edu",
-                "total points" : 0,
-                "days" : {
-                    str(date.today()) : {
-                        "fixed_blocks": [],
-                        "floating_tasks": [],
-                        "ai_schedule": None
-                    }
-                }
-            }
-        }
-    }
 
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
@@ -80,7 +61,6 @@ if not st.session_state["logged_in"]:
                         uid = user["localId"]
 
                         db.collection('users').document(uid).set({
-                            "onboarding_complete": False,
                             "name": "",
                             "age": 0,
                             "email": sign_up_email,
@@ -104,7 +84,7 @@ if not st.session_state["logged_in"]:
             st.rerun()
 else:
     if not st.session_state["user"]["completed_onboarding"]:
-        onboarding()
+        onboarding() 
     else:
 
         tab1, tab2 = st.tabs(["Homepage", "Activity Form"])

@@ -2,7 +2,8 @@ import streamlit as st
 from ai import get_json_response
 from srs.calender_gen import system_prompt
 import json
-
+from firebase_utils import db
+from datetime import datetime
 def activity_form():
     if "fixed_time_blocks" not in st.session_state:
          st.session_state['fixed_time_blocks'] = []
@@ -123,5 +124,8 @@ def activity_form():
                 response = list_value
 
         st.session_state["generated_schedule"] = response
+        
+        uid = st.session_state['user_session']['uid']
 
+        db.collection('uesrs').document(uid).collection("schedules").document(str(datetime.now())).set(response)
         st.switch_page("pages/schedule.py")
