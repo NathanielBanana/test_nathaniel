@@ -33,3 +33,5 @@ def onboarding():
                 "reason_for_use": reason_for_use,
                 "completed_onboarding": True
             })
+
+            st.rerun()

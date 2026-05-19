@@ -105,24 +105,17 @@ if not st.session_state["logged_in"]:
 else:
     if not st.session_state["user"]["completed_onboarding"]:
         onboarding()
+    else:
 
-    tab1, tab2 = st.tabs(["Homepage", "Activity Form"])
+        tab1, tab2 = st.tabs(["Homepage", "Activity Form"])
 
 
-    with tab1:
-        homepage()
-    with tab2:
-        activity_form()
+        with tab1:
+            homepage()
+        with tab2:
+            activity_form()
 
-    # col1, col2, col3 = st.columns(3)
-
-    # with col1:
-    #     onboarding()
-    # with col2:
-    #     homepage()
-    # with col3:
-    #     st.write("Hi im in col 3")
     
-    if st.button("Log Out"):
-        st.session_state["logged_in"] = False
-        st.rerun()
+        if st.button("Log Out"):
+            st.session_state["logged_in"] = False
+            st.rerun()
