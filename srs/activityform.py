@@ -1,6 +1,6 @@
 import streamlit as st
 from ai import get_json_response
-from pages.calender_gen import system_prompt
+from srs.calender_gen import system_prompt
 import json
 
 def activity_form():

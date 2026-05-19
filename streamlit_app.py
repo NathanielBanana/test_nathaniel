@@ -1,9 +1,9 @@
 import streamlit as st
 from datetime import date
-from pages.onboarding import onboarding
-from pages.homepage import homepage
-from pages.activityform import activity_form
-from pages.calender_gen import calender_gen
+from srs.onboarding import onboarding
+from srs.homepage import homepage
+from srs.activityform import activity_form
+from srs.calender_gen import calender_gen
 from firebase_utils import db, auth
 
 if "db" not in st.session_state:
@@ -48,9 +48,12 @@ if not st.session_state["logged_in"]:
                 try:
                     user = auth.sign_in_with_email_and_password(log_in_email, log_in_password)
                     st.session_state["logged_in"] = True
-                    st.session_state["user"] = {
+
+                    user_doc = db.collection('users').document(user["localId"]).get()
+                    user_dict = user_doc.to_dict()
+                    st.session_state["user"] = user_dict
+                    st.session_state["user_session"] = {
                         "uid": user["localId"],
-                        "email": user["email"],
                         "id_token": user["idToken"],
                         "refresh_token": user["refreshToken"]
                     }
@@ -81,6 +84,7 @@ if not st.session_state["logged_in"]:
                             "name": "",
                             "age": 0,
                             "email": sign_up_email,
+                            "completed_onboarding": False
                         })
 
                         st.success("Account created! Please log in")
@@ -99,14 +103,15 @@ if not st.session_state["logged_in"]:
             st.session_state["auth_mode"] = "login"
             st.rerun()
 else:
+    if not st.session_state["user"]["completed_onboarding"]:
+        onboarding()
 
-    tab1, tab2, tab3 = st.tabs(["Onboarding", "Homepage", "Activity Form"])
+    tab1, tab2 = st.tabs(["Homepage", "Activity Form"])
+
 
     with tab1:
-        onboarding()
-    with tab2:
         homepage()
-    with tab3:
+    with tab2:
         activity_form()
 
     # col1, col2, col3 = st.columns(3)
