@@ -26,5 +26,8 @@ def onboarding():
 
         if onboarding_submit:
             db.collection('users').document(uid).update({
-                    
-                        })
+                "name": name,
+                "age": age,
+                "favorite_color": favorite_color,
+                "reason_for_use": reason_for_use
+            })
