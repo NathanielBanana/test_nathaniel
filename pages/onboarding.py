@@ -1,4 +1,5 @@
 import streamlit as st
+from firebase_utils import db, auth
 
 def onboarding(): 
     with st.form("onboarding"):
@@ -22,3 +23,8 @@ def onboarding():
         )
 
         onboarding_submit = st.form_submit_button("Finish")
+
+        if onboarding_submit:
+            db.collection('users').document(uid).update({
+                    
+                        })
