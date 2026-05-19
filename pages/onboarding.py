@@ -25,6 +25,7 @@ def onboarding():
         onboarding_submit = st.form_submit_button("Finish")
 
         if onboarding_submit:
+            uid = st.session_state['user']['uid']
             db.collection('users').document(uid).update({
                 "name": name,
                 "age": age,

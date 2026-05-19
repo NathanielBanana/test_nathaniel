@@ -42,7 +42,7 @@ if not st.session_state["logged_in"]:
         st.write("Log in to continue")
         with st.form("log_in_form"):
             log_in_email =  st.text_input("Enter your email:")
-            log_in_password = st.text_input("Enter your account password:")
+            log_in_password = st.text_input("Enter your account password:", type='password')
 
             if st.form_submit_button("Log In"):
                 try:
@@ -65,8 +65,8 @@ if not st.session_state["logged_in"]:
         st.title("Sign Up")
         with st.form("Sign Up"):
             sign_up_email = st.text_input("Enter your email:")
-            sign_up_password = st.text_input("Make a password:")
-            sign_up_password_confirm = st.text_input("Confirm your password:")
+            sign_up_password = st.text_input("Make a password:", type='password')
+            sign_up_password_confirm = st.text_input("Confirm your password:", type='password')
 
             if st.form_submit_button("Create an Account"):
                 if sign_up_password == sign_up_password_confirm:    
