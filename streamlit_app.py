@@ -4,11 +4,15 @@ from srs.onboarding import onboarding
 from srs.homepage import homepage
 from srs.activityform import activity_form
 from srs.calender_gen import calender_gen
+from srs.schedule import show_schedule
 from firebase_utils import db, auth
 
 
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
+
+if "current_view" not in st.session_state:
+    st.session_state["current_view"] = "main"
 
 if "auth_mode" not in st.session_state:
     st.session_state["auth_mode"] = "login"
@@ -84,18 +88,20 @@ if not st.session_state["logged_in"]:
             st.rerun()
 else:
     if not st.session_state["user"]["completed_onboarding"]:
-        onboarding() 
+        onboarding()
+    elif st.session_state["current_view"] == "schedule":
+        if st.button("← Back"):
+            st.session_state["current_view"] = "main"
+            st.rerun()
+        show_schedule()
     else:
-
         tab1, tab2 = st.tabs(["Homepage", "Activity Form"])
-
 
         with tab1:
             homepage()
         with tab2:
             activity_form()
 
-    
         if st.button("Log Out"):
             st.session_state["logged_in"] = False
             st.rerun()

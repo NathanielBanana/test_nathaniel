@@ -124,8 +124,10 @@ def activity_form():
                 response = list_value
 
         st.session_state["generated_schedule"] = response
-        
+        st.session_state["current_view"] = "schedule"
+
         uid = st.session_state['user_session']['uid']
 
-        db.collection('uesrs').document(uid).collection("schedules").document(str(datetime.now())).set(response)
-        st.switch_page("pages/schedule.py")
+        save_data = response if isinstance(response, dict) else {"schedule": response}
+        db.collection('uesrs').document(uid).collection("schedules").document(str(datetime.now())).set(save_data)
+        st.rerun()
