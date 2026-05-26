@@ -24,51 +24,62 @@ def format_12h_time(value):
         value = value.time()
     return value.strftime("%I:%M %p").lstrip("0")
 
+from datetime import datetime, date
+
+
+def _extract_events(response):
+    """Normalize whatever the LLM returned into a list of event dicts."""
+    if response is None:
+        return []
+
+    if isinstance(response, list):
+        return [ev for ev in response if isinstance(ev, dict)]
+
+    if isinstance(response, dict):
+        if isinstance(response.get("events"), list):
+            return [ev for ev in response["events"] if isinstance(ev, dict)]
+
+        for value in response.values():
+            if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+                return value
+
+        values = list(response.values())
+        if values and all(isinstance(v, dict) for v in values):
+            return values
+
+    return []
+
+
 def activity_form():
     if "fixed_time_blocks" not in st.session_state:
-         st.session_state['fixed_time_blocks'] = []
+        st.session_state["fixed_time_blocks"] = []
     if "floating_time_blocks" not in st.session_state:
-         st.session_state['floating_time_blocks'] = []
-    fixed_time_blocks = st.session_state['fixed_time_blocks']
+        st.session_state["floating_time_blocks"] = []
 
-    floating_time_blocks =  st.session_state['floating_time_blocks']
+    fixed_time_blocks = st.session_state["fixed_time_blocks"]
+    floating_time_blocks = st.session_state["floating_time_blocks"]
 
-    return_response = {}
+    schedule_date = st.date_input("Schedule date", value=date.today())
 
     wakeup_time = st.select_slider(
         "What time do you usually wake up?",
         options=[
-            "5:00 AM",
-            "5:30 AM",
-            "6:00 AM",
-            "6:30 AM",
-            "7:00 AM",
-            "7:30 AM",
-            "8:00 AM",
-            "8:30 AM",            
-        ]
+            "5:00 AM", "5:30 AM", "6:00 AM", "6:30 AM",
+            "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM",
+        ],
     )
     sleep_time = st.select_slider(
         "What time do you usually go to sleep?",
         options=[
-            "8:00 PM",
-            "8:30 PM",
-            "9:00 PM",
-            "9:30 PM",
-            "10:00 PM",
-            "10:30 PM",
-            "11:00 PM",
-            "11:30 PM",
-            "12:00 AM",
-            
-        ]
+            "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM",
+            "10:00 PM", "10:30 PM", "11:00 PM", "11:30 PM", "12:00 AM",
+        ],
     )
-    
-    st.write('Add Schedule!')
+
+    st.write("Add Schedule!")
     tab1, tab2 = st.tabs(["Fixed Blocks", "Floating Blocks"])
 
     with tab1:
-        
         fixed_block_name = st.text_input("Name of the fixed block")
 
         start_fixed_time = st.select_slider(
@@ -82,7 +93,7 @@ def activity_form():
             options=TIME_OPTIONS,
             key='fixed_end'
         )
-
+        
         if st.button("Add Fixed Block"):
             fixed_time_blocks.append(
                 {
@@ -98,70 +109,62 @@ def activity_form():
                 block['name']
                 + " "
                 + format_12h_time(block["start_time"])
-                + " : "
+                + " - "
                 + format_12h_time(block["end_time"])
             )
 
     with tab2:
-
         floating_block_name = st.text_input("Name of the Floating Block")
-
         floating_block_importance = st.select_slider(
             "How Important is this Task?",
-            options=[
-                'Not Important',
-                'Slightly Important',
-                'Important',
-                'Very Important'
-            ]
+            options=["Not Important", "Slightly Important", "Important", "Very Important"],
         )
-
         floating_block_difficulty = st.select_slider(
             "How difficult is this task?",
-            options=[
-                'Easy',
-                'Normal',
-                'Hard',
-                'Very Hard'
-            ]
-
+            options=["Easy", "Normal", "Hard", "Very Hard"],
         )
-       
-        if st.button('Add Floating Block'):
-            floating_time_blocks.append(
-                {
-                    'name' : floating_block_name,
-                    'importance' : floating_block_importance,
-                    'difficulty' : floating_block_difficulty      
-                }
-            )
+
+        if st.button("Add Floating Block"):
+            floating_time_blocks.append({
+                "name": floating_block_name,
+                "importance": floating_block_importance,
+                "difficulty": floating_block_difficulty,
+            })
             st.rerun()
+
         for block in floating_time_blocks:
-            st.write(block['name'] + " " + str(block["importance"]) + " : " + str(block["difficulty"]))
-    
-    if st.button('Generate Calendar'):
+            st.write(f"{block['name']} {block['importance']} : {block['difficulty']}")
 
-
-        user_prompt = json.dumps({
+    if st.button("Generate Calendar"):
+        user_payload = {
+            "date": schedule_date.isoformat(),
             "wakeup_time": wakeup_time,
             "sleep_time": sleep_time,
+            "fixed_blocks": fixed_time_blocks,
             "floating_blocks": floating_time_blocks,
-            "fixed_blocks": fixed_time_blocks
-        }, default=str)
+        }
+        user_prompt = json.dumps(user_payload, default=str)
 
-        response = get_json_response(system_prompt, user_prompt)
+        try:
+            response = get_json_response(system_prompt, user_prompt)
+        except Exception as e:
+            st.error(f"Failed to generate schedule: {e}")
+            return
 
-        # FIX: unwrap if needed
-        if isinstance(response, dict):
-            list_value = next((v for v in response.values() if isinstance(v, list)), None)
-            if list_value is not None:
-                response = list_value
+        events = _extract_events(response)
 
-        st.session_state["generated_schedule"] = response
+        if not events:
+            st.error("The model did not return any events. Raw response shown below — try again or adjust inputs.")
+            st.write(response)
+            return
+
+        st.session_state["generated_schedule"] = events
+        st.session_state["generated_schedule_raw"] = response
         st.session_state["current_view"] = "schedule"
 
-        uid = st.session_state['user_session']['uid']
+        uid = st.session_state["user_session"]["uid"]
+        db.collection("users").document(uid).collection("schedules").document(
+            datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        ).set({"events": events})
 
-        save_data = response if isinstance(response, dict) else {"schedule": response}
-        db.collection('uesrs').document(uid).collection("schedules").document(str(datetime.now())).set(save_data)
         st.rerun()
