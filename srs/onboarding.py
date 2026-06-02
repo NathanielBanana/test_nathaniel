@@ -34,4 +34,7 @@ def onboarding():
                 "completed_onboarding": True
             })
 
+            if "user" in st.session_state:
+                st.session_state["user"]["completed_onboarding"] = True
+            st.session_state["current_view"] = "main"
             st.rerun()

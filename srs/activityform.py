@@ -3,7 +3,7 @@ from ai import get_json_response
 from srs.calender_gen import system_prompt
 import json
 from firebase_utils import db
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 
 def _build_time_options(step_minutes=30):
     options = []
@@ -24,7 +24,6 @@ def format_12h_time(value):
         value = value.time()
     return value.strftime("%I:%M %p").lstrip("0")
 
-from datetime import datetime, date
 
 
 def _extract_events(response):
@@ -62,14 +61,14 @@ def activity_form():
     schedule_date = st.date_input("Schedule date", value=date.today())
 
     wakeup_time = st.select_slider(
-        "What time do you usually wake up?",
+        "What time will you wake up?",
         options=[
             "5:00 AM", "5:30 AM", "6:00 AM", "6:30 AM",
             "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM",
         ],
     )
     sleep_time = st.select_slider(
-        "What time do you usually go to sleep?",
+        "What time will you go to sleep?",
         options=[
             "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM",
             "10:00 PM", "10:30 PM", "11:00 PM", "11:30 PM", "12:00 AM",
@@ -93,25 +92,48 @@ def activity_form():
             options=TIME_OPTIONS,
             key='fixed_end'
         )
+
+        fixed_in_person = st.toggle("In-person activity?", value=False, key='fixed_in_person')
+
+        fixed_travel_time = None
+        if fixed_in_person:
+            fixed_travel_time = st.number_input(
+                "How many minutes travel time?",
+                min_value=0,
+                max_value=120,
+                value=15,
+                key='fixed_travel_time'
+            )
         
         if st.button("Add Fixed Block"):
-            fixed_time_blocks.append(
-                {
-                    'name': fixed_block_name,
-                    'start_time': start_fixed_time,
-                    'end_time': end_fixed_time,
-                }
-            )
-            st.rerun()
+            if not fixed_block_name.strip():
+                st.error("Please enter a fixed block name.")
+            elif TIME_OPTIONS.index(end_fixed_time) <= TIME_OPTIONS.index(start_fixed_time):
+                st.error("End time must be later than start time.")
+            else:
+                fixed_time_blocks.append(
+                    {
+                        'name': fixed_block_name,
+                        'start_time': start_fixed_time,
+                        'end_time': end_fixed_time,
+                        'in_person': fixed_in_person,
+                        'travel_time_minutes': fixed_travel_time,
+                    }
+                )
+                st.rerun()
 
         for block in fixed_time_blocks:
-            st.write(
+            display_text = (
                 block['name']
                 + " "
                 + format_12h_time(block["start_time"])
                 + " - "
                 + format_12h_time(block["end_time"])
             )
+            if block.get('in_person'):
+                travel_time = block.get('travel_time_minutes', 0)
+                display_text += f" [In-person, {travel_time} min travel]"
+            st.write(display_text)
 
     with tab2:
         floating_block_name = st.text_input("Name of the Floating Block")
@@ -124,16 +146,34 @@ def activity_form():
             options=["Easy", "Normal", "Hard", "Very Hard"],
         )
 
+        float_in_person = st.toggle("In-person activity?", value=False, key='float_in_person')
+
+        float_travel_time = None
+        if float_in_person:
+            float_travel_time = st.number_input(
+                "How many minutes travel time?",
+                min_value=0,
+                max_value=120,
+                value=15,
+                key='float_travel_time'
+            )
+
         if st.button("Add Floating Block"):
             floating_time_blocks.append({
                 "name": floating_block_name,
                 "importance": floating_block_importance,
                 "difficulty": floating_block_difficulty,
+                "in_person": float_in_person,
+                "travel_time_minutes": float_travel_time,
             })
             st.rerun()
 
         for block in floating_time_blocks:
-            st.write(f"{block['name']} {block['importance']} : {block['difficulty']}")
+            display_text = f"{block['name']} {block['importance']} : {block['difficulty']}"
+            if block.get('in_person'):
+                travel_time = block.get('travel_time_minutes', 0)
+                display_text += f" [In-person, {travel_time} min travel]"
+            st.write(display_text)
 
     if st.button("Generate Calendar"):
         user_payload = {
@@ -163,8 +203,17 @@ def activity_form():
         st.session_state["current_view"] = "schedule"
 
         uid = st.session_state["user_session"]["uid"]
+        save_doc = {
+            "date": schedule_date.isoformat(),
+            "created_at": datetime.now(),
+            "wakeup_time": wakeup_time,
+            "sleep_time": sleep_time,
+            "fixed_blocks": fixed_time_blocks,
+            "floating_blocks": floating_time_blocks,
+            "events": events,
+        }
         db.collection("users").document(uid).collection("schedules").document(
-            datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-        ).set({"events": events})
+            f"{schedule_date.isoformat()}-{datetime.now().strftime('%H%M%S')}"
+        ).set(save_doc)
 
         st.rerun()

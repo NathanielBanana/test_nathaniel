@@ -45,8 +45,15 @@ You will receive a JSON object containing:
 - "date":            target date (YYYY-MM-DD) — USE THIS for every start/end timestamp
 - "wakeup_time":     string like "7:00 AM"
 - "sleep_time":      string like "10:30 PM"
-- "fixed_blocks":    array of { "name", "start_time", "end_time" }   (times are HH:MM:SS strings)
-- "floating_blocks": array of { "name", "importance", "difficulty" }
+- "fixed_blocks":    array of { "name", "start_time", "end_time", "in_person", "travel_time_minutes" }
+  - times are HH:MM:SS strings
+  - in_person: boolean (true if activity is in-person, false if remote)
+  - travel_time_minutes: integer or null (minutes to travel if in_person is true)
+- "floating_blocks": array of { "name", "importance", "difficulty", "in_person", "travel_time_minutes" }
+  - importance: "Not Important", "Slightly Important", "Important", or "Very Important"
+  - difficulty: "Easy", "Normal", "Hard", or "Very Hard"
+  - in_person: boolean (true if activity is in-person, false if remote)
+  - travel_time_minutes: integer or null (minutes to travel if in_person is true)
 
 ---
 
@@ -66,8 +73,17 @@ You will receive a JSON object containing:
 7. Colors:
    - Fixed blocks:    "#FF6C6C"
    - Floating blocks: "#4287f5"
-8. Make sure end > start for every event.
-9. If there are no blocks at all, return {"events": []}.
+   - Travel blocks:   "#9999FF"
+8. Travel time handling for in-person activities:
+   - For EVERY in-person activity (fixed or floating), create a "Travel" event BEFORE it
+   - Travel event duration: travel_time_minutes (from the block's travel_time_minutes field)
+   - Travel event title: "Travel to [activity name]"
+   - Travel event backgroundColor: "#9999FF"
+   - Travel event end time = activity start time
+   - Travel event start time = activity start time - travel_time_minutes
+   - Schedule the actual activity AFTER the travel block
+9. Make sure end > start for every event.
+10. If there are no blocks at all, return {"events": []}.
 
 Return ONLY the JSON object described above.
 """

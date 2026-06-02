@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import datetime
 from streamlit_calendar import calendar
 
 
@@ -42,6 +43,37 @@ def _normalize_events(raw_events):
     return normalized
 
 
+def _parse_event_timestamp(value):
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M"):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _find_current_event(events):
+    now = datetime.now()
+    for ev in events:
+        start = _parse_event_timestamp(ev.get("start"))
+        end = _parse_event_timestamp(ev.get("end"))
+        if not start or not end:
+            continue
+        if start <= now < end:
+            return ev, start, end
+    return None, None, None
+
+
+def _format_time(value):
+    if not isinstance(value, datetime):
+        return ""
+    return value.strftime("%I:%M %p").lstrip("0")
+
+
 def show_schedule():
     st.title("📅 Your AI Schedule")
 
@@ -58,10 +90,29 @@ def show_schedule():
             st.write(st.session_state.get("generated_schedule_raw", raw))
         st.stop()
 
+    current_event, current_start, current_end = _find_current_event(events)
+    if current_event:
+        st.info(
+            f"Current event: **{current_event.get('title', 'Untitled')}** — "
+            f"{_format_time(current_start)} to {_format_time(current_end)}"
+        )
+
     initial_date = None
     first_start = events[0].get("start", "")
     if isinstance(first_start, str) and "T" in first_start:
         initial_date = first_start.split("T")[0]
+
+    if initial_date:
+        st.markdown(f"**Schedule date:** {initial_date}")
+
+    with st.expander("Schedule summary"):
+        for ev in events:
+            title = ev.get("title") or ev.get("name") or "Untitled"
+            start = _parse_event_timestamp(ev.get("start"))
+            end = _parse_event_timestamp(ev.get("end"))
+            if not start or not end:
+                continue
+            st.write(f"- **{title}** — {_format_time(start)} to {_format_time(end)}")
 
     with st.expander("Debug: events being passed to calendar"):
         st.write({"initialDate": initial_date, "events": events})
@@ -82,9 +133,7 @@ def show_schedule():
     if initial_date:
         calendar_options["initialDate"] = initial_date
 
-    # Key must change when events change so the component re-mounts and renders them.
     calendar_key = "calendar_" + str(hash(str(events)))
-
     calendar(
         events=events,
         options=calendar_options,
